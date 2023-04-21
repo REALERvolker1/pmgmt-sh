@@ -7,6 +7,8 @@ set -u
 UPOWER_AC_DEVICE='/org/freedesktop/UPower/devices/line_power_ACAD'
 SYSFS_AC_DEVICE='/sys/class/power_supply/ACAD/online'
 
+KEYBOARD_PATH='sysfs/leds/asus::kbd_backlight'
+
 # configuration
 bat_kbd=1
 bat_backlight=40
@@ -21,17 +23,13 @@ ac_command_center () {
     local ac_state="${1:-}"
     echo "$ac_state"
     if [ "$ac_state" = 'true' ]; then
-        light -Srs "sysfs/leds/asus::kbd_backlight" "$ac_kbd"
+        light -Srs "$KEYBOARD_PATH" "$ac_kbd"
         light -S "$ac_backlight"
         powerprofilesctl set "$ac_powerprof"
         asusctl bios -O "true"
-        # x11/Wayland-specific configs
-        #if [ -z "$WAYLAND_DISPLAY" ]; then
-        #else
-        #fi
 
     elif [ "$ac_state" = 'false' ]; then
-        light -Srs "sysfs/leds/asus::kbd_backlight" "$bat_kbd"
+        light -Srs "$KEYBOARD_PATH" "$bat_kbd"
         light -S "$bat_backlight"
         powerprofilesctl set "$bat_powerprof"
         asusctl bios -O "false"
