@@ -1,10 +1,7 @@
 #!/usr/bin/bash
 # script by vlk
-# vim:ft=sh
 
-set -eu
-
-LOCK_COMMAND='vlkexec --lock 1'
+set -u
 
 UPOWER_AC_DEVICE='/org/freedesktop/UPower/devices/line_power_ACAD'
 SYSFS_AC_DEVICE='/sys/class/power_supply/ACAD/online'
@@ -17,16 +14,6 @@ ac_kbd=3
 ac_backlight=80
 ac_powerprof='performance'
 
-program_name="${0##*/}"
-program_id="$$"
-pids="$(pidof -x "$program_name")"
-
-if [ "$(printf '%s\n' "$pids" | tr ' ' '\n' | wc -l)" -gt 1 ]; then
-    for i in $pids; do
-        [ "$i" = "$program_id" ] && continue
-        kill "$i" && printf "%s is already running. Killed %s\n" "$program_name" "$i"
-    done
-fi
 
 ac_command_center () {
     local ac_state="${1:-}"
@@ -56,6 +43,22 @@ ac_monitor () {
     done
 }
 
+_instance_detect () {
+    local program_name="${0##*/}"
+    local program_id="$$"
+    local pids
+    pids="$(pidof -x "$program_name")"
+
+    if [ "$(printf '%s\n' "$pids" | tr ' ' '\n' | wc -l)" -gt 1 ]; then
+        for i in $pids; do
+            [ "$i" = "$program_id" ] && continue
+            kill "$i" && printf "%s is already running. Killed %s\n" "$program_name" "$i"
+        done
+    fi
+}
+
+_instance_detect
+
 case "$(cat "$SYSFS_AC_DEVICE")" in
     1)
         ac_command_center 'true'
@@ -68,9 +71,3 @@ case "$(cat "$SYSFS_AC_DEVICE")" in
 esac
 
 ac_monitor
-
-wait
-
-# for battery, do gdbus monitor --system --dest org.freedesktop.UPower --object-path /org/freedesktop/UPower/devices/DisplayDevice
-# receives:
-#   /org/freedesktop/UPower/devices/DisplayDevice: org.freedesktop.DBus.Properties.PropertiesChanged ('org.freedesktop.UPower.Device', {'UpdateTime': <uint64 1673888959>, 'Percentage': <98.0>, 'TimeToEmpty': <int64 13045>, 'EnergyRate': <19.358595000000001>, 'Energy': <70.152998999999994>}, @as [])
