@@ -3,9 +3,11 @@
 
 set -u
 
+# AC device paths
 UPOWER_AC_DEVICE='/org/freedesktop/UPower/devices/line_power_ACAD'
 SYSFS_AC_DEVICE='/sys/class/power_supply/ACAD/online'
 
+# configuration
 bat_kbd=1
 bat_backlight=40
 bat_powerprof='balanced'
@@ -23,7 +25,9 @@ ac_command_center () {
         light -S "$ac_backlight"
         powerprofilesctl set "$ac_powerprof"
         asusctl bios -O "true"
+        # x11/Wayland-specific configs
         #if [ -z "$WAYLAND_DISPLAY" ]; then
+        #else
         #fi
 
     elif [ "$ac_state" = 'false' ]; then
@@ -31,13 +35,10 @@ ac_command_center () {
         light -S "$bat_backlight"
         powerprofilesctl set "$bat_powerprof"
         asusctl bios -O "false"
-        #if [ -z "$WAYLAND_DISPLAY" ]; then
-        #fi
     fi
 }
 
 ac_monitor () {
-    #gdbus monitor -y -d org.freedesktop.UPower --object-path "" | grep --line-buffered -Po "'Online':\s+<\K[^>]*" | while read -r line; do
     dbus-monitor --system "type='signal',sender='org.freedesktop.UPower',path='$UPOWER_AC_DEVICE',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged'" |& grep --line-buffered -oP 'boolean \K.*$' | while read -r line; do
         ac_command_center "$line"
     done
@@ -49,7 +50,7 @@ _instance_detect () {
     local pids
     pids="$(pidof -x "$program_name")"
 
-    if [ "$(printf '%s\n' "$pids" | tr ' ' '\n' | wc -l)" -gt 1 ]; then
+    if [ "$(echo "$pids" | tr ' ' '\n' | wc -l)" -gt 1 ]; then
         for i in $pids; do
             [ "$i" = "$program_id" ] && continue
             kill "$i" && printf "%s is already running. Killed %s\n" "$program_name" "$i"
