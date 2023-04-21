@@ -29,8 +29,9 @@ if [ "$(printf '%s\n' "$pids" | tr ' ' '\n' | wc -l)" -gt 1 ]; then
 fi
 
 ac_command_center () {
-    echo "$1"
-    if [ "$1" = 'true' ]; then
+    local ac_state="${1:-}"
+    echo "$ac_state"
+    if [ "$ac_state" = 'true' ]; then
         light -Srs "sysfs/leds/asus::kbd_backlight" "$ac_kbd"
         light -S "$ac_backlight"
         powerprofilesctl set "$ac_powerprof"
@@ -38,7 +39,7 @@ ac_command_center () {
         #if [ -z "$WAYLAND_DISPLAY" ]; then
         #fi
 
-    elif [ "$1" = 'false' ]; then
+    elif [ "$ac_state" = 'false' ]; then
         light -Srs "sysfs/leds/asus::kbd_backlight" "$bat_kbd"
         light -S "$bat_backlight"
         powerprofilesctl set "$bat_powerprof"
