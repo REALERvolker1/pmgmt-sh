@@ -4,6 +4,14 @@ A simple and customizable power management script
 
 # USAGE
 
+- Dependencies:
+  - upower
+  - dbus-monitor
+- Optional dependencies:
+  - light
+  - power-profiles-daemon
+  - asusctl
+
 ```bash
 # Customize the script variables
 # AC device paths
