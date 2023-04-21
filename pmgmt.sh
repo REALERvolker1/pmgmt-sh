@@ -2,16 +2,20 @@
 # script by vlk
 # vim:ft=sh
 
-LOCK_COMMAND="vlkexec --lock 1"
+set -eu
 
-BAT_CRITICAL=69
+LOCK_COMMAND='vlkexec --lock 1'
 
-bat_backlight=40
+UPOWER_AC_DEVICE='/org/freedesktop/UPower/devices/line_power_ACAD'
+SYSFS_AC_DEVICE='/sys/class/power_supply/ACAD/online'
+
 bat_kbd=1
+bat_backlight=40
 bat_powerprof='balanced'
 
-bat_high=true
-is_ac=true
+ac_kbd=3
+ac_backlight=80
+ac_powerprof='performance'
 
 program_name="${0##*/}"
 program_id="$$"
@@ -26,42 +30,39 @@ fi
 
 ac_command_center () {
     echo "$1"
-    killall xidlehook 2> /dev/null
     if [ "$1" = 'true' ]; then
-        light -Srs "sysfs/leds/asus::kbd_backlight" 3
-        light -S 75
-        powerprofilesctl set performance
+        light -Srs "sysfs/leds/asus::kbd_backlight" "$ac_kbd"
+        light -S "$ac_backlight"
+        powerprofilesctl set "$ac_powerprof"
         asusctl bios -O "true"
-        if [ -z "$WAYLAND_DISPLAY" ]; then
-            xidlehook --not-when-audio --not-when-fullscreen --detect-sleep \
-                --timer 600 "light -S 40" "light -I" \
-                --timer 120 "$LOCK_COMMAND" "light -I" &
-        fi
+        #if [ -z "$WAYLAND_DISPLAY" ]; then
+        #fi
+
     elif [ "$1" = 'false' ]; then
         light -Srs "sysfs/leds/asus::kbd_backlight" "$bat_kbd"
         light -S "$bat_backlight"
         powerprofilesctl set "$bat_powerprof"
         asusctl bios -O "false"
-        if [ -z "$WAYLAND_DISPLAY" ]; then
-            xidlehook --not-when-audio --not-when-fullscreen --detect-sleep \
-                --timer 120 "light -S 20" "light -I" \
-                --timer 120 "$LOCK_COMMAND" "light -I" \
-                --timer 60 "systemctl suspend" "light -I" &
-        fi
+        #if [ -z "$WAYLAND_DISPLAY" ]; then
+        #fi
     fi
 }
 
 ac_monitor () {
-    #gdbus monitor -y -d org.freedesktop.UPower --object-path "/org/freedesktop/UPower/devices/line_power_ACAD" | grep --line-buffered -Po "'Online':\s+<\K[^>]*" | while read -r line; do
-    dbus-monitor --system "type='signal',sender='org.freedesktop.UPower',path='/org/freedesktop/UPower/devices/line_power_ACAD',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged'" |& grep --line-buffered -oP 'boolean \K.*$' | while read -r line; do
+    #gdbus monitor -y -d org.freedesktop.UPower --object-path "" | grep --line-buffered -Po "'Online':\s+<\K[^>]*" | while read -r line; do
+    dbus-monitor --system "type='signal',sender='org.freedesktop.UPower',path='$UPOWER_AC_DEVICE',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged'" |& grep --line-buffered -oP 'boolean \K.*$' | while read -r line; do
         ac_command_center "$line"
     done
 }
 
-case "$(cat '/sys/class/power_supply/ACAD/online')" in
-    1) ac_command_center "true"
-    ;; 0) ac_command_center "false"
-    ;; *) echo "ERR"
+case "$(cat "$SYSFS_AC_DEVICE")" in
+    1)
+        ac_command_center 'true'
+    ;; 0)
+        ac_command_center 'false'
+    ;; *)
+        echo "ERROR: Failed to get current AC state"
+        exit 1
     ;;
 esac
 
