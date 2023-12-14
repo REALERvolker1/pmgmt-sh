@@ -1,3 +1,5 @@
+This repository has been archived. My current pmgmt.sh script is in my [dotfiles](https://github.com/REALERvolker1/homescripts/blob/main/bin/pmgmt.sh)
+
 # pmgmt-sh
 
 A simple and customizable power management script
